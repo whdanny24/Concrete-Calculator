@@ -1,0 +1,815 @@
+<script>// Global variable to store slab thickness
+let currentSlabThickness = 150; // Default to 150 mm or your desired default
+
+// Function to handle Slab Thickness slider
+function updateSlabThickness() {
+  const slabThicknessElement = document.getElementById("slab_thickness");
+  
+  // Ensure that the element exists and contains a valid number
+  if (slabThicknessElement) {
+    const slabThickness = parseFloat(slabThicknessElement.value);
+    
+    // Validate slabThickness to ensure it's a valid number
+    if (!isNaN(slabThickness) && slabThickness > 0) {
+      currentSlabThickness = slabThickness; // Update global slab thickness value
+      const slabThicknessValueElement = document.getElementById("slab_thickness_value");
+
+      // Update the UI if the display element exists
+      if (slabThicknessValueElement) {
+        slabThicknessValueElement.innerHTML = slabThickness + " mm";
+      } else {
+        console.warn("Slab thickness value display element not found.");
+      }
+
+      // Call the function to trigger the relevant calculations with the updated slab thickness
+      handleInputChange(); // This will trigger the recalculation logic
+    } else {
+      console.warn("Invalid slab thickness input. Please provide a valid number.");
+    }
+  } else {
+    console.error("Slab thickness input element not found.");
+  }
+}
+
+
+// Global variables to store CCCS and max shear strength
+let currentCCCS = 20; // Default to 20 MPa
+let maxShearStrength = 3.7; // Default max shear strength for 20 MPa
+
+// Function to handle Characteristic Compressive Cylinder Strength selection
+function updateCylinderStrength() {
+  const cccsElement = document.getElementById("cccs");
+
+  // Ensure that the element exists
+  if (cccsElement) {
+    const cccs = cccsElement.value;
+
+    // Update global CCCS and max shear strength based on the selected value
+    switch (cccs) {
+      case '20':
+        currentCCCS = 20;
+        maxShearStrength = 3.7;
+        break;
+      case '25':
+        currentCCCS = 25;
+        maxShearStrength = 4.5;
+        break;
+      case '28':
+        currentCCCS = 28;
+        maxShearStrength = 5.0;
+        break;
+      case '30':
+        currentCCCS = 30;
+        maxShearStrength = 5.3;
+        break;
+      case '32':
+        currentCCCS = 32;
+        maxShearStrength = 5.6;
+        break;
+      case '40':
+        currentCCCS = 40;
+        maxShearStrength = 6.7;
+        break;
+      default:
+        // Handle any unexpected values with defaults
+        console.warn("Unexpected CCCS value. Defaulting to 20 MPa.");
+        currentCCCS = 20;
+        maxShearStrength = 3.7;
+    }
+
+    // Update the displayed CCCS information if the display element exists
+    const cccsValueElement = document.getElementById("cccs_value");
+    if (cccsValueElement) {
+      const cccsText = `${currentCCCS} MPa - Max Shear Strength ${maxShearStrength} MPa`;
+      cccsValueElement.innerHTML = cccsText;
+    } else {
+      console.warn("CCCS value display element not found.");
+    }
+
+    // Trigger recalculations based on the new CCCS value
+    handleInputChange();
+  } else {
+    console.error("CCCS selection element not found.");
+  }
+}
+
+// Global variable to store material selection for later use
+let selectedMaterial = 'Concrete'; // Default to 'Concrete'
+let materialYm = 1.5; // Default Ym value for Concrete
+
+// Function to handle Material selection
+function updateMaterial() {
+  const materialElement = document.getElementById("material");
+
+  // Ensure that the material selection element exists
+  if (materialElement) {
+    const material = materialElement.value;
+
+    // Update global variable and Ym value based on selection
+    let materialText = '';
+
+    switch (material) {
+      case 'Concrete':
+        selectedMaterial = 'Concrete';
+        materialYm = 1.5; // Ym value for Concrete
+        materialText = 'Concrete';
+        break;
+      case 'Concrete_with_Fibre':
+        selectedMaterial = 'Concrete with Fibre';
+        materialYm = 1.5; // Ym value for Concrete with Fibre
+        materialText = 'Concrete with Fibre';
+        break;
+      case 'Reinforcement':
+        selectedMaterial = 'Reinforcement (bar or fibre)';
+        materialYm = 1.15; // Ym value for Reinforcement
+        materialText = 'Reinforcement (bar or fibre)';
+        break;
+      default:
+        // Handle any unexpected values with default values
+        console.warn("Unexpected material value. Defaulting to Concrete.");
+        selectedMaterial = 'Concrete';
+        materialYm = 1.5; // Default to Concrete Ym value
+        materialText = 'Concrete';
+    }
+
+    // Update the UI to reflect the selected material name (without Ym value)
+    const materialValueElement = document.getElementById("material_value");
+    if (materialValueElement) {
+      materialValueElement.innerHTML = materialText;
+    } else {
+      console.warn("Material value display element not found.");
+    }
+
+    // Trigger recalculations or further actions based on material selection
+    handleInputChange();
+  } else {
+    console.error("Material selection element not found.");
+  }
+}
+
+// Global variable to store the substrate description and k value
+let substrateKValue = 0.0225; // Default average k value for fine or slightly compacted sand
+
+// Function to handle Substrate Description selection
+function updateSubstrateDescription() {
+  const substrateElement = document.getElementById("substrate_description");
+
+  // Ensure the substrate description element exists
+  if (substrateElement) {
+    const substrateDescription = substrateElement.value;
+    let substrateDescriptionText = '';
+
+    // Update the description text and k value based on the selected substrate
+    switch (substrateDescription) {
+      case 'Fine_slightly_compacted_sand':
+        substrateKValue = 0.0225; // Average k value
+        substrateDescriptionText = 'Fine or slightly compacted sand - k [MPa/mm] 0.015 - 0.03 (Avg 0.0225)';
+        break;
+      case 'Well_compacted_sand':
+        substrateKValue = 0.075; // Average k value
+        substrateDescriptionText = 'Well compacted sand - k [MPa/mm] 0.05 - 0.1 (Avg 0.075)';
+        break;
+      case 'Very_well_compacted_sand':
+        substrateKValue = 0.125; // Average k value
+        substrateDescriptionText = 'Very well compacted sand - k [MPa/mm] 0.1 - 0.15 (Avg 0.125)';
+        break;
+      case 'Loam_clay_moist':
+        substrateKValue = 0.045; // Average k value
+        substrateDescriptionText = 'Loam or clay (moist) - k [MPa/mm] 0.03 - 0.06 (Avg 0.045)';
+        break;
+      case 'Loam_clay_dry':
+        substrateKValue = 0.09; // Average k value
+        substrateDescriptionText = 'Loam or clay (dry) - k [MPa/mm] 0.08 - 0.1 (Avg 0.09)';
+        break;
+      case 'Clay_with_sand':
+        substrateKValue = 0.09; // Average k value
+        substrateDescriptionText = 'Clay with sand - k [MPa/mm] 0.08 - 0.1 (Avg 0.09)';
+        break;
+      case 'Crushed_stone_sand':
+        substrateKValue = 0.125; // Average k value
+        substrateDescriptionText = 'Crushed stone with sand - k [MPa/mm] 0.1 - 0.15 (Avg 0.125)';
+        break;
+      case 'Coarse_crushed_stone':
+        substrateKValue = 0.225; // Average k value
+        substrateDescriptionText = 'Coarse crushed stone - k [MPa/mm] 0.2 - 0.25 (Avg 0.225)';
+        break;
+      case 'Well_compacted_crushed_stone':
+        substrateKValue = 0.25; // Average k value
+        substrateDescriptionText = 'Well compacted crushed stone - k [MPa/mm] 0.2 - 0.3 (Avg 0.25)';
+        break;
+      default:
+        // Default case when no valid substrate is selected
+        console.warn("Unexpected substrate description. Defaulting to fine or slightly compacted sand.");
+        substrateKValue = 0.0225; // Default to fine or slightly compacted sand
+        substrateDescriptionText = 'Fine or slightly compacted sand - k [MPa/mm] 0.015 - 0.03 (Avg 0.0225)';
+    }
+
+    // Update the UI to reflect the selected substrate description
+    const substrateDescriptionElement = document.getElementById("substrate_description_value");
+    if (substrateDescriptionElement) {
+      substrateDescriptionElement.innerHTML = substrateDescriptionText;
+    } else {
+      console.warn("Substrate description value element not found.");
+    }
+
+    // Trigger recalculations or further actions based on substrate description change
+    handleInputChange();
+  } else {
+    console.error("Substrate description selection element not found.");
+  }
+}
+// Function to handle Width of the Racking Leg/Column
+function updateRackingLegWidth() {
+  const rackingLegElement = document.getElementById("racking_leg_column");
+
+  // Ensure the racking leg element exists before proceeding
+  if (rackingLegElement) {
+    const rackingLegWidth = rackingLegElement.value;
+
+    // Check if the value is a valid number
+    if (!isNaN(rackingLegWidth) && rackingLegWidth > 0) {
+      const rackingLegValueElement = document.getElementById("racking_leg_value");
+
+      // Ensure the element to display the width value exists
+      if (rackingLegValueElement) {
+        rackingLegValueElement.innerHTML = `${rackingLegWidth} mm`;
+      } else {
+        console.warn("Element to display racking leg width not found.");
+      }
+
+      // Trigger recalculations or further actions based on racking leg width change
+      handleInputChange();
+    } else {
+      console.warn("Invalid racking leg width value entered. Please enter a valid number.");
+    }
+  } else {
+    console.error("Racking leg column input element not found.");
+  }
+}
+
+
+const concreteData = {
+  'FibreProduct_25MPa_Concrete': {
+    fibreProducts: {
+      'ReoCo_65_60__1200_Mpa': [
+        { dosageRate: 25, F1_CMOD1: 0, fR1: 0, σR1: 0, F4_CMOD4: 0, fR4: 0, σR4: 0 },
+        { dosageRate: 30, F1_CMOD1: 0, fR1: 0, σR1: 0, F4_CMOD4: 0, fR4: 0, σR4: 0 },
+        { dosageRate: 35, F1_CMOD1: 0, fR1: 0, σR1: 0, F4_CMOD4: 0, fR4: 0, σR4: 0 },
+        { dosageRate: 40, F1_CMOD1: 0, fR1: 0, σR1: 0, F4_CMOD4: 0, fR4: 0, σR4: 0 },
+      ],
+      'ReoCo_65_60_HT__1500_Mpa': [
+        { dosageRate: 20, F1_CMOD1: 0, fR1: 0, σR1: 0, F4_CMOD4: 0, fR4: 0, σR4: 0 },
+        { dosageRate: 30, F1_CMOD1: 0, fR1: 0, σR1: 0, F4_CMOD4: 0, fR4: 0, σR4: 0 },
+        { dosageRate: 35, F1_CMOD1: 0, fR1: 0, σR1: 0, F4_CMOD4: 0, fR4: 0, σR4: 0 },
+        { dosageRate: 40, F1_CMOD1: 0, fR1: 0, σR1: 0, F4_CMOD4: 0, fR4: 0, σR4: 0 },
+      ],
+      'ReoCo_65_35__1350_Mpa': [
+        { dosageRate: 20, F1_CMOD1: 4399, fR1: 1.40768, σR1: 0.633456, F4_CMOD4: 2667, fR4: 0.853488, σR4: 0.315791 },
+        { dosageRate: 30, F1_CMOD1: 6208, fR1: 1.98656, σR1: 0.893952, F4_CMOD4: 2828, fR4: 0.90496, σR4: 0.334835 },
+        { dosageRate: 35, F1_CMOD1: 5708, fR1: 1.8264, σR1: 0.82188, F4_CMOD4: 3769, fR4: 1.20608, σR4: 0.44625 },
+        { dosageRate: 40, F1_CMOD1: 5207, fR1: 1.66624, σR1: 0.749808, F4_CMOD4: 4710, fR4: 1.5072, σR4: 0.557664 },
+      ],
+    },
+  },
+  'FibreProduct_40MPa_Concrete': {
+    fibreProducts: {
+      'ReoCo_65_60__1200_Mpa': [
+        { dosageRate: 25, F1_CMOD1: 0, fR1: 0, σR1: 0, F4_CMOD4: 0, fR4: 0, σR4: 0 },
+        { dosageRate: 30, F1_CMOD1: 0, fR1: 0, σR1: 0, F4_CMOD4: 0, fR4: 0, σR4: 0 },
+        { dosageRate: 35, F1_CMOD1: 0, fR1: 0, σR1: 0, F4_CMOD4: 0, fR4: 0, σR4: 0 },
+        { dosageRate: 40, F1_CMOD1: 0, fR1: 0, σR1: 0, F4_CMOD4: 0, fR4: 0, σR4: 0 },
+      ],
+      'ReoShore_45': [
+        { dosageRate: 3, F1_CMOD1: 1687, fR1: 0.539904, σR1: 0.2429568, F4_CMOD4: 1591, fR4: 0.509248, σR4: 0.18842176 },
+        { dosageRate: 4, F1_CMOD1: 2440, fR1: 0.780672, σR1: 0.3513024, F4_CMOD4: 1825, fR4: 0.583904, σR4: 0.21604448 },
+        { dosageRate: 5, F1_CMOD1: 3192, fR1: 1.02144, σR1: 0.459648, F4_CMOD4: 2058, fR4: 0.65856, σR4: 0.2436672 },
+        { dosageRate: 6, F1_CMOD1: 3059, fR1: 0.97888, σR1: 0.440496, F4_CMOD4: 2251, fR4: 0.72016, σR4: 0.2664592 },
+      ],
+    },
+  },
+};
+
+// Function to handle the 'Kind of Concrete' selection and populate Fibre Product and Dosage Rate dropdowns
+function populateFibreProducts() {
+  const kindOfConcrete = document.getElementById("kind_of_concrete");
+  const fibreProductSelect = document.getElementById("fibre_product");
+  const dosageRateSelect = document.getElementById("dosage_rate");
+
+  // Check element existence before interacting with them
+  if (kindOfConcrete && fibreProductSelect && dosageRateSelect) {
+    // Clear both Fibre Product and Dosage Rate dropdowns
+    fibreProductSelect.innerHTML = '';
+    dosageRateSelect.innerHTML = '';
+    dosageRateSelect.disabled = true;
+
+    // Check if the selected Kind of Concrete exists in the data
+    if (concreteData[kindOfConcrete.value]) {
+      const fibreProducts = concreteData[kindOfConcrete.value].fibreProducts;
+
+      // Populate the Fibre Product dropdown
+      fibreProductSelect.innerHTML = `<option value="">Select Fibre Product</option>`;
+      for (let fibreProduct in fibreProducts) {
+        const option = document.createElement("option");
+        option.value = fibreProduct;
+        option.text = fibreProduct;
+        fibreProductSelect.appendChild(option);
+      }
+
+      // Enable the Fibre Product dropdown
+      fibreProductSelect.disabled = false;
+    } else {
+      // Disable the Fibre Product dropdown if no valid kind of concrete is selected
+      fibreProductSelect.disabled = true;
+    }
+  } else {
+    console.error("Dropdown elements not found");
+  }
+}
+
+// Function to populate Dosage Rate dropdown based on selected Fibre Product
+function populateDosageRates() {
+  const kindOfConcrete = document.getElementById("kind_of_concrete");
+  const fibreProduct = document.getElementById("fibre_product");
+  const dosageRateSelect = document.getElementById("dosage_rate");
+
+  if (kindOfConcrete && fibreProduct && dosageRateSelect) {
+    dosageRateSelect.innerHTML = '';
+
+    if (concreteData[kindOfConcrete.value] && concreteData[kindOfConcrete.value].fibreProducts[fibreProduct.value]) {
+      const dosageRates = concreteData[kindOfConcrete.value].fibreProducts[fibreProduct.value];
+
+      // Populate the Dosage Rate dropdown
+      dosageRateSelect.innerHTML = `<option value="">Select Dosage Rate</option>`;
+      dosageRates.forEach(dosage => {
+        const option = document.createElement("option");
+        option.value = dosage.dosageRate;
+        option.text = `${dosage.dosageRate} kg/m³`;
+        dosageRateSelect.appendChild(option);
+      });
+
+      dosageRateSelect.disabled = false;
+    } else {
+      dosageRateSelect.disabled = true;
+    }
+  } else {
+    console.error("Dropdown elements not found for dosage rates");
+  }
+}
+
+// Function to display F1, fR1, σR1, F4, fR4, and σR4 when a Dosage Rate is selected
+function displayDosageRateValues() {
+  const kindOfConcrete = document.getElementById("kind_of_concrete").value;
+  const fibreProduct = document.getElementById("fibre_product").value;
+  const dosageRate = document.getElementById("dosage_rate").value;
+
+  if (concreteData[kindOfConcrete] && concreteData[kindOfConcrete].fibreProducts[fibreProduct]) {
+    const dosageData = concreteData[kindOfConcrete].fibreProducts[fibreProduct].find(d => d.dosageRate == dosageRate);
+
+    if (dosageData) {
+      document.getElementById("F1_CMOD1_value").innerText = dosageData.F1_CMOD1;
+      document.getElementById("fR1_value").innerText = dosageData.fR1;
+      document.getElementById("σR1_value").innerText = dosageData.σR1;
+      document.getElementById("F4_CMOD4_value").innerText = dosageData.F4_CMOD4;
+      document.getElementById("fR4_value").innerText = dosageData.fR4;
+      document.getElementById("σR4_value").innerText = dosageData.σR4;
+    }
+  }
+}
+
+// Event listeners to trigger population and display
+document.getElementById("kind_of_concrete").addEventListener("change", populateFibreProducts);
+document.getElementById("fibre_product").addEventListener("change", populateDosageRates);
+document.getElementById("dosage_rate").addEventListener("change", displayDosageRateValues);
+
+// Function to perform calculations using F1, fR1, σR1, F4, fR4, and σR4
+function calculateResults() {
+  const F1_CMOD1 = parseFloat(document.getElementById("F1_CMOD1_value").innerText) || 0;
+  const fR1 = parseFloat(document.getElementById("fR1_value").innerText) || 0;
+  const σR1 = parseFloat(document.getElementById("σR1_value").innerText) || 0;
+  const F4_CMOD4 = parseFloat(document.getElementById("F4_CMOD4_value").innerText) || 0;
+  const fR4 = parseFloat(document.getElementById("fR4_value").innerText) || 0;
+  const σR4 = parseFloat(document.getElementById("σR4_value").innerText) || 0;
+
+  const shearStrength = F1_CMOD1 + fR1 + σR1 + F4_CMOD4 + fR4 + σR4;
+
+  document.getElementById("shear_strength_result").innerText = `Calculated Shear Strength: ${shearStrength.toFixed(2)} N`;
+}
+
+document.getElementById("dosage_rate").addEventListener("change", calculateResults);
+
+// Function to handle Ultimate Design Point Load
+function updateUltimateDesignPointLoad() {
+    const ultimateDesignPointLoadElement = document.getElementById("ultimate_design_point_load");
+    const ultimateDesignPointLoadValueElement = document.getElementById("ultimate_design_point_load_value");
+
+    // Ensure elements exist
+    if (!ultimateDesignPointLoadElement || !ultimateDesignPointLoadValueElement) {
+        console.error("One or more elements are missing for Ultimate Design Point Load.");
+        return;
+    }
+
+    // Retrieve the value of the ultimate design point load from the input field
+    const ultimateDesignPointLoad = parseFloat(ultimateDesignPointLoadElement.value);
+
+    // Validate the input (check if it's a valid number and greater than zero)
+    if (isNaN(ultimateDesignPointLoad) || ultimateDesignPointLoad <= 0) {
+        ultimateDesignPointLoadValueElement.innerHTML = "Invalid input. Please enter a valid Ultimate Design Point Load (greater than zero).";
+        return;
+    }
+
+    // Update the UI to display the ultimate design point load value in kn
+    ultimateDesignPointLoadValueElement.innerHTML = `Ultimate Design Point Load: ${ultimateDesignPointLoad.toFixed(2)} kn`;
+
+    // Trigger further calculations if needed
+    handleInputChange();  // Ensure this function recalculates the relevant results
+}
+// Function to handle Dual Point Load
+function updateDualPointLoad() {
+    // Ensure the elements exist before accessing their values
+    const dualLoad1Element = document.getElementById("dual_ultimate_design_point_load_1");
+    const dualLoad2Element = document.getElementById("dual_ultimate_design_point_load_2");
+    const centreLineSpacingElement = document.getElementById("centre_line_spacing_between_2_point_loads");
+    const dualPointLoadValuesElement = document.getElementById("dual_point_load_values");
+
+    if (!dualLoad1Element || !dualLoad2Element || !centreLineSpacingElement || !dualPointLoadValuesElement) {
+        console.error("One or more elements are missing for Dual Point Load.");
+        return;
+    }
+
+    // Retrieve the values of the two dual point loads and the center line spacing
+    const dualUltimateDesignPointLoad1 = parseFloat(dualLoad1Element.value);
+    const dualUltimateDesignPointLoad2 = parseFloat(dualLoad2Element.value);
+    const centreLineSpacing = parseFloat(centreLineSpacingElement.value);
+
+    // Validate the inputs (check if they are valid numbers and greater than zero)
+    if (isNaN(dualUltimateDesignPointLoad1) || dualUltimateDesignPointLoad1 <= 0) {
+        dualPointLoadValuesElement.innerHTML = "Invalid input for Dual Ultimate Design Point Load 1. Please enter a value greater than 0.";
+        return;
+    }
+    if (isNaN(dualUltimateDesignPointLoad2) || dualUltimateDesignPointLoad2 <= 0) {
+        dualPointLoadValuesElement.innerHTML = "Invalid input for Dual Ultimate Design Point Load 2. Please enter a value greater than 0.";
+        return;
+    }
+    if (isNaN(centreLineSpacing) || centreLineSpacing <= 0) {
+        dualPointLoadValuesElement.innerHTML = "Invalid input for Centre Line Spacing. Please enter a value greater than 0.";
+        return;
+    }
+
+    // Update the UI to display the dual point loads and center line spacing
+    dualPointLoadValuesElement.innerHTML = `
+        Dual - Ultimate Design Point Load 1: ${dualUltimateDesignPointLoad1.toFixed(2)} kn<br>
+        Dual - Ultimate Design Point Load 2: ${dualUltimateDesignPointLoad2.toFixed(2)} kn<br>
+        Centre Line Spacing: ${centreLineSpacing.toFixed(2)} mm
+    `;
+
+    // Trigger further calculations or updates if necessary
+    handleInputChange();  // Ensures further recalculations are triggered
+}
+// Function to handle Quadruple Point Load
+function updateQuadruplePointLoad() {
+    // Ensure the elements exist before accessing their values
+    const quadLoad1Element = document.getElementById("quadruple_ultimate_design_point_load_1");
+    const quadLoad2Element = document.getElementById("quadruple_ultimate_design_point_load_2");
+    const quadLoad3Element = document.getElementById("quadruple_ultimate_design_point_load_3");
+    const quadLoad4Element = document.getElementById("quadruple_ultimate_design_point_load_4");
+    const centreLineSpacingXElement = document.getElementById("quadruple_centre_line_spacing_x");
+    const centreLineSpacingYElement = document.getElementById("quadruple_centre_line_spacing_y");
+    const quadPointLoadValuesElement = document.getElementById("quadruple_point_load_values");
+
+    if (!quadLoad1Element || !quadLoad2Element || !quadLoad3Element || !quadLoad4Element || 
+        !centreLineSpacingXElement || !centreLineSpacingYElement || !quadPointLoadValuesElement) {
+        console.error("One or more elements are missing for Quadruple Point Load.");
+        return;
+    }
+
+    // Retrieve the values for quadruple point loads and center line spacings
+    const quadrupleUltimateDesignPointLoad1 = parseFloat(quadLoad1Element.value);
+    const quadrupleUltimateDesignPointLoad2 = parseFloat(quadLoad2Element.value);
+    const quadrupleUltimateDesignPointLoad3 = parseFloat(quadLoad3Element.value);
+    const quadrupleUltimateDesignPointLoad4 = parseFloat(quadLoad4Element.value);
+    const centreLineSpacingX = parseFloat(centreLineSpacingXElement.value);
+    const centreLineSpacingY = parseFloat(centreLineSpacingYElement.value);
+
+    // Validate the inputs (check if they are valid numbers and greater than zero)
+    if (isNaN(quadrupleUltimateDesignPointLoad1) || quadrupleUltimateDesignPointLoad1 <= 0) {
+        quadPointLoadValuesElement.innerHTML = "Invalid input for Quadruple Ultimate Design Point Load 1. Please enter a value greater than 0.";
+        return;
+    }
+    if (isNaN(quadrupleUltimateDesignPointLoad2) || quadrupleUltimateDesignPointLoad2 <= 0) {
+        quadPointLoadValuesElement.innerHTML = "Invalid input for Quadruple Ultimate Design Point Load 2. Please enter a value greater than 0.";
+        return;
+    }
+    if (isNaN(quadrupleUltimateDesignPointLoad3) || quadrupleUltimateDesignPointLoad3 <= 0) {
+        quadPointLoadValuesElement.innerHTML = "Invalid input for Quadruple Ultimate Design Point Load 3. Please enter a value greater than 0.";
+        return;
+    }
+    if (isNaN(quadrupleUltimateDesignPointLoad4) || quadrupleUltimateDesignPointLoad4 <= 0) {
+        quadPointLoadValuesElement.innerHTML = "Invalid input for Quadruple Ultimate Design Point Load 4. Please enter a value greater than 0.";
+        return;
+    }
+    if (isNaN(centreLineSpacingX) || centreLineSpacingX <= 0) {
+        quadPointLoadValuesElement.innerHTML = "Invalid input for Centre Line Spacing X. Please enter a value greater than 0.";
+        return;
+    }
+    if (isNaN(centreLineSpacingY) || centreLineSpacingY <= 0) {
+        quadPointLoadValuesElement.innerHTML = "Invalid input for Centre Line Spacing Y. Please enter a value greater than 0.";
+        return;
+    }
+
+    // Update the UI to display the quadruple point loads and center line spacings
+    quadPointLoadValuesElement.innerHTML = `
+        Quadruple - Ultimate Design Point Load 1: ${quadrupleUltimateDesignPointLoad1.toFixed(2)} kn<br>
+        Quadruple - Ultimate Design Point Load 2: ${quadrupleUltimateDesignPointLoad2.toFixed(2)} kn<br>
+        Quadruple - Ultimate Design Point Load 3: ${quadrupleUltimateDesignPointLoad3.toFixed(2)} kn<br>
+        Quadruple - Ultimate Design Point Load 4: ${quadrupleUltimateDesignPointLoad4.toFixed(2)} kn<br>
+        Centre Line Spacing X: ${centreLineSpacingX.toFixed(2)} mm<br>
+        Centre Line Spacing Y: ${centreLineSpacingY.toFixed(2)} mm
+    `;
+
+    // Trigger further calculations or updates if necessary
+    handleInputChange();
+}
+// Function to handle Design Parameters
+function updateDesignParameters() {
+    // Ensure the elements exist before accessing their values
+    const designPointLoadElement = document.getElementById("design_point_load");
+    const basePlateThicknessElement = document.getElementById("base_plate_thickness");
+    const minShearStressElement = document.getElementById("internal_slab_shear_stress");
+    const bearingPlateDimXElement = document.getElementById("bearing_plate_dimensions_x");
+    const bearingPlateDimYElement = document.getElementById("bearing_plate_dimensions_y");
+    const designParametersValuesElement = document.getElementById("design_parameters_values");
+
+    if (!designPointLoadElement || !basePlateThicknessElement || !minShearStressElement || 
+        !bearingPlateDimXElement || !bearingPlateDimYElement || !designParametersValuesElement) {
+        console.error("One or more elements are missing for Design Parameters.");
+        return;
+    }
+
+    // Retrieve the values for design parameters and bearing plate dimensions
+    const designPointLoad = parseFloat(designPointLoadElement.value);
+    const basePlateThickness = parseFloat(basePlateThicknessElement.value);
+    const minShearStress = parseFloat(minShearStressElement.value);
+    const bearingPlateDimX = parseFloat(bearingPlateDimXElement.value);
+    const bearingPlateDimY = parseFloat(bearingPlateDimYElement.value);
+
+    // Validate the inputs (check if they are valid numbers and greater than zero)
+    if (isNaN(designPointLoad) || designPointLoad <= 0) {
+        designParametersValuesElement.innerHTML = "Invalid input for Design Point Load. Please enter a value greater than 0.";
+        return;
+    }
+    if (isNaN(basePlateThickness) || basePlateThickness <= 0) {
+        designParametersValuesElement.innerHTML = "Invalid input for Base Plate Thickness. Please enter a value greater than 0.";
+        return;
+    }
+    if (isNaN(minShearStress) || minShearStress <= 0) {
+        designParametersValuesElement.innerHTML = "Invalid input for Minimum Shear Stress. Please enter a value greater than 0.";
+        return;
+    }
+    if (isNaN(bearingPlateDimX) || bearingPlateDimX <= 0) {
+        designParametersValuesElement.innerHTML = "Invalid input for Bearing Plate Dimension X. Please enter a value greater than 0.";
+        return;
+    }
+    if (isNaN(bearingPlateDimY) || bearingPlateDimY <= 0) {
+        designParametersValuesElement.innerHTML = "Invalid input for Bearing Plate Dimension Y. Please enter a value greater than 0.";
+        return;
+    }
+
+    // Update the UI to display the design parameters
+    designParametersValuesElement.innerHTML = `
+        Design Parameters:<br>
+        - Design Point Load: ${designPointLoad.toFixed(2)} kn<br>
+        - Base Plate Thickness: ${basePlateThickness.toFixed(2)} mm<br>
+        - Minimum Shear Stress: ${minShearStress.toFixed(2)} MPa<br>
+        - Bearing Plate Dimensions: ${bearingPlateDimX.toFixed(2)} x ${bearingPlateDimY.toFixed(2)} mm
+    `;
+
+    // Trigger further calculations or updates if necessary
+    handleInputChange();
+}
+// Call update functions and handleInputChange when values change
+function addEventListeners() {
+  const elementEventMapping = [
+    { id: "slab_thickness", event: "input", updateFunc: updateSlabThickness },
+    { id: "cccs", event: "change", updateFunc: updateCylinderStrength },
+    { id: "material", event: "change", updateFunc: updateMaterial },
+    { id: "substrate_description", event: "change", updateFunc: updateSubstrateDescription },
+    { id: "racking_leg_column", event: "input", updateFunc: updateRackingLegWidth },
+    { id: "kind_of_concrete", event: "change", updateFunc: showFibreProducts },
+    { id: "fibre_product", event: "change", updateFunc: showDosageRate },
+    { id: "dosage_rate", event: "change", updateFunc: handleInputChange }, // If specific update function is added later, it can be replaced
+    { id: "ultimate_design_point_load", event: "input", updateFunc: updateUltimateDesignPointLoad },
+    { id: "dual_ultimate_design_point_load_1", event: "input", updateFunc: updateDualPointLoad },
+    { id: "dual_ultimate_design_point_load_2", event: "input", updateFunc: updateDualPointLoad },
+    { id: "centre_line_spacing_between_2_point_loads", event: "input", updateFunc: updateDualPointLoad },
+    { id: "quadruple_ultimate_design_point_load_1", event: "input", updateFunc: updateQuadruplePointLoad },
+    { id: "quadruple_ultimate_design_point_load_2", event: "input", updateFunc: updateQuadruplePointLoad },
+    { id: "quadruple_ultimate_design_point_load_3", event: "input", updateFunc: updateQuadruplePointLoad },
+    { id: "quadruple_ultimate_design_point_load_4", event: "input", updateFunc: updateQuadruplePointLoad },
+    { id: "quadruple_centre_line_spacing_x", event: "input", updateFunc: updateQuadruplePointLoad },
+    { id: "quadruple_centre_line_spacing_y", event: "input", updateFunc: updateQuadruplePointLoad },
+    { id: "design_point_load", event: "input", updateFunc: updateDesignParameters },
+    { id: "base_plate_thickness", event: "input", updateFunc: updateDesignParameters },
+    { id: "internal_slab_shear_stress", event: "input", updateFunc: updateDesignParameters },
+    { id: "bearing_plate_dimensions_x", event: "input", updateFunc: updateDesignParameters },
+    { id: "bearing_plate_dimensions_y", event: "input", updateFunc: updateDesignParameters }
+  ];
+
+  // Add event listeners
+  elementEventMapping.forEach(mapping => {
+    const element = document.getElementById(mapping.id);
+    if (element) {
+      element.addEventListener(mapping.event, function() {
+        mapping.updateFunc();
+        handleInputChange();
+      });
+    }
+  });
+}
+
+// Initialize all event listeners on page load
+document.addEventListener('DOMContentLoaded', addEventListeners);
+// Utility function to format and display load results
+function displayLoadResult(elementId, threshold, calculatedValue, result) {
+  document.getElementById(elementId).innerHTML = `
+    <span class="threshold">Threshold: ${threshold} kn</span><br>
+    <span class="result">Calculated: ${calculatedValue.toFixed(2)} kn</span><br>
+    <span class="status">${result}</span>`;
+}
+
+// Function to calculate point load results
+function calculatePointLoads() {
+  // Fetch and validate values
+  const ultimateDesignPointLoad = parseFloat(document.getElementById("ultimate_design_point_load").value) || 0;
+  const dualUltimateDesignPointLoad1 = parseFloat(document.getElementById("dual_ultimate_design_point_load_1").value) || 0;
+  const dualUltimateDesignPointLoad2 = parseFloat(document.getElementById("dual_ultimate_design_point_load_2").value) || 0;
+
+  // Define thresholds
+  const maxSinglePointLoad = 40;
+  const maxDualPointLoad = 50;
+  const maxFreeEdgeLoad = 35;
+  const maxFreeCornerLoad = 25;
+
+  // Single Point Load Calculation
+  const singlePointResult = ultimateDesignPointLoad <= maxSinglePointLoad ? "PASS" : "FAIL";
+  displayLoadResult("single_point_internal_load", maxSinglePointLoad, ultimateDesignPointLoad, singlePointResult);
+
+  // Free Edge Load for Single Point Calculation
+  const freeEdgeLoad = ultimateDesignPointLoad * 0.8;
+  const freeEdgeResult = freeEdgeLoad <= maxFreeEdgeLoad ? "PASS" : "FAIL";
+  displayLoadResult("single_point_free_edge_load", maxFreeEdgeLoad, freeEdgeLoad, freeEdgeResult);
+
+  // Free Corner Load for Single Point Calculation
+  const freeCornerLoad = ultimateDesignPointLoad * 0.6;
+  const freeCornerResult = freeCornerLoad <= maxFreeCornerLoad ? "PASS" : "FAIL";
+  displayLoadResult("single_point_free_corner_load", maxFreeCornerLoad, freeCornerLoad, freeCornerResult);
+
+  // Dual Point Load Calculation
+  const dualPointTotalLoad = dualUltimateDesignPointLoad1 + dualUltimateDesignPointLoad2;
+  const dualPointResult = dualPointTotalLoad <= maxDualPointLoad ? "PASS" : "FAIL";
+  displayLoadResult("dual_point_internal_load", maxDualPointLoad, dualPointTotalLoad, dualPointResult);
+
+  // Free Edge Load for Dual Point Calculation
+  const dualFreeEdgeLoad = dualPointTotalLoad * 0.8;
+  const dualFreeEdgeResult = dualFreeEdgeLoad <= maxFreeEdgeLoad ? "PASS" : "FAIL";
+  displayLoadResult("dual_point_free_edge_load", maxFreeEdgeLoad, dualFreeEdgeLoad, dualFreeEdgeResult);
+}
+
+// Function to calculate Quadruple Point Loads
+function calculateQuadruplePointLoads() {
+  // Fetch and validate values
+  const quadrupleUltimateDesignPointLoad1 = parseFloat(document.getElementById("quadruple_ultimate_design_point_load_1").value) || 0;
+  const quadrupleUltimateDesignPointLoad2 = parseFloat(document.getElementById("quadruple_ultimate_design_point_load_2").value) || 0;
+  const quadrupleUltimateDesignPointLoad3 = parseFloat(document.getElementById("quadruple_ultimate_design_point_load_3").value) || 0;
+  const quadrupleUltimateDesignPointLoad4 = parseFloat(document.getElementById("quadruple_ultimate_design_point_load_4").value) || 0;
+
+  // Define threshold
+  const maxQuadruplePointLoad = 100;
+
+  // Quadruple Point Load Calculation
+  const quadrupleTotalLoad = quadrupleUltimateDesignPointLoad1 +
+    quadrupleUltimateDesignPointLoad2 +
+    quadrupleUltimateDesignPointLoad3 +
+    quadrupleUltimateDesignPointLoad4;
+  const quadruplePointResult = quadrupleTotalLoad <= maxQuadruplePointLoad ? "PASS" : "FAIL";
+
+  // Display result
+  displayLoadResult("quadruple_point_internal_load", maxQuadruplePointLoad, quadrupleTotalLoad, quadruplePointResult);
+}
+
+// Utility function to format and display punching shear results
+function displayPunchingShearResult(elementId, threshold, calculatedValue, result) {
+  document.getElementById(elementId).innerHTML = `
+    <span class="threshold">Threshold: ${threshold} MPa</span><br>
+    <span class="result">Calculated: ${calculatedValue.toFixed(2)} MPa</span><br>
+    <span class="status">${result}</span>`;
+}
+
+// Function to calculate Punching Shear results
+function calculatePunchingShear() {
+  // Fetch and validate values, defaulting to 0 if input is invalid
+  const designPointLoad = parseFloat(document.getElementById("design_point_load").value) || 0;
+  const basePlateThickness = parseFloat(document.getElementById("base_plate_thickness").value) || 0;
+  const slabShearStress = parseFloat(document.getElementById("internal_slab_shear_stress").value) || 0;
+  const bearingPlateDimensionX = parseFloat(document.getElementById("bearing_plate_dimensions_x").value) || 0;
+  const bearingPlateDimensionY = parseFloat(document.getElementById("bearing_plate_dimensions_y").value) || 0;
+
+  // Define thresholds
+  const maxInternalSlabShear = 35;  // MPa
+  const maxEdgeShear = 25;  // MPa
+  const maxCornerShear = 20;  // MPa
+  const groundPressureThreshold = 0.6;  // MPa
+
+  // Ensure valid dimensions to avoid division by zero
+  if (bearingPlateDimensionX <= 0 || bearingPlateDimensionY <= 0) {
+    document.getElementById("punching_shear_internal_slab").innerHTML = "Invalid dimensions for bearing plate.";
+    return;
+  }
+
+  // Internal Slab Shear Calculation
+  const internalSlabShear = designPointLoad * slabShearStress / (bearingPlateDimensionX * bearingPlateDimensionY);
+  const internalSlabResult = internalSlabShear <= maxInternalSlabShear ? "PASS" : "FAIL";
+  displayPunchingShearResult("punching_shear_internal_slab", maxInternalSlabShear, internalSlabShear, internalSlabResult);
+
+  // Edge Shear Calculation
+  const edgeShear = basePlateThickness * slabShearStress / (bearingPlateDimensionX + bearingPlateDimensionY);
+  const edgeResult = edgeShear <= maxEdgeShear ? "PASS" : "FAIL";
+  displayPunchingShearResult("punching_shear_edge", maxEdgeShear, edgeShear, edgeResult);
+
+  // Corner Shear Calculation
+  const cornerShear = basePlateThickness * slabShearStress / bearingPlateDimensionX;
+  const cornerResult = cornerShear <= maxCornerShear ? "PASS" : "FAIL";
+  displayPunchingShearResult("punching_shear_corner", maxCornerShear, cornerShear, cornerResult);
+
+  // Internal Load Ground Pressure Calculation
+  const internalGroundPressure = designPointLoad / bearingPlateDimensionX;
+  const internalGroundPressureResult = internalGroundPressure <= groundPressureThreshold ? "PASS" : "FAIL";
+  displayPunchingShearResult("punching_shear_internal_load_ground_pressure", groundPressureThreshold, internalGroundPressure, internalGroundPressureResult);
+
+  // Edge Load Ground Pressure Calculation
+  const edgeGroundPressure = designPointLoad / bearingPlateDimensionY;
+  const edgeGroundPressureResult = edgeGroundPressure <= groundPressureThreshold ? "PASS" : "FAIL";
+  displayPunchingShearResult("punching_shear_edge_load_ground_pressure", groundPressureThreshold, edgeGroundPressure, edgeGroundPressureResult);
+}
+
+// Function to trigger both Point Loads and Punching Shear calculations
+function calculateResults() {
+  const kindOfConcrete = document.getElementById("kind_of_concrete").value;
+
+  // Check if "Kind of Concrete" is selected
+  if (!kindOfConcrete) {
+    resetResults(); // Reset results if no concrete type is selected
+    return; // Exit the calculation if no kind of concrete is selected
+  }
+
+  // Trigger calculations for Point Loads and Punching Shear
+  calculatePointLoads();             // Ensure Point Loads are calculated
+  calculateQuadruplePointLoads();     // Ensure Quadruple Point Loads are calculated
+  calculatePunchingShear();           // Ensure Punching Shear calculations are done
+}
+
+// Function to reset result fields to "N/A" while keeping the labels
+function resetResults() {
+  const resultFields = {
+    "single_point_internal_load": "Single Point Load - Internal Load:<br>N/A",
+    "single_point_free_edge_load": "Single Point Load - Free Edge Load:<br>N/A",
+    "single_point_free_corner_load": "Single Point Load - Free Corner Load:<br>N/A",
+    "dual_point_internal_load": "Dual Point Load - Internal Load:<br>N/A",
+    "dual_point_free_edge_load": "Dual Point Load - Free Edge Load:<br>N/A",
+    "quadruple_point_internal_load": "Quadruple Point Load - Internal Load:<br>N/A",
+    "punching_shear_internal_slab": "Punching Shear - Internal Slab:<br>N/A",
+    "punching_shear_edge": "Punching Shear - Edge Shear:<br>N/A",
+    "punching_shear_corner": "Punching Shear - Corner Shear:<br>N/A",
+    "punching_shear_internal_load_ground_pressure": "Punching Shear - Internal Load Ground Pressure:<br>N/A",
+    "punching_shear_edge_load_ground_pressure": "Punching Shear - Edge Load Ground Pressure:<br>N/A"
+  };
+
+  // Loop through each result field and reset its content to "N/A"
+  Object.keys(resultFields).forEach(function(fieldId) {
+    const element = document.getElementById(fieldId);
+    if (element) {
+      element.innerHTML = resultFields[fieldId];  // Reset the content to "N/A"
+    } else {
+      console.warn(`Element with ID "${fieldId}" not found. Please check the ID or ensure the element exists.`);
+    }
+  });
+}
+
+// Function to be executed when the page loads or when input changes
+document.addEventListener("DOMContentLoaded", function() {
+  resetResults();  // Reset all results when the page is loaded
+
+  // Add event listeners for input changes to trigger recalculation
+  const inputFields = document.querySelectorAll("input, select");  // Gather all inputs and selects
+  inputFields.forEach(field => {
+    field.addEventListener("input", handleInputChange);  // Trigger handleInputChange on input change
+    field.addEventListener("change", handleInputChange); // Trigger handleInputChange on select change
+  });
+});
+
+// Function to handle input changes, resetting and recalculating results
+function handleInputChange() {
+  resetResults();    // Reset previous results
+  calculateResults(); // Recalculate the results based on new input
+}
+
+</script>
