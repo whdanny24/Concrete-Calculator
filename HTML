@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Point Load & Punching Shear Calculator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+    }
+
+    .container {
+      background-color: white;
+      padding: 20px;
+      border: 1px solid #ccc;
+      max-width: 800px;
+      margin: auto;
+    }
+
+    h2, h3 {
+      color: #2c3e50;
+    }
+
+    label {
+      font-weight: bold;
+      display: block;
+      margin: 10px 0 5px;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 10px;
+      box-sizing: border-box;
+    }
+
+    #results_section {
+      margin-top: 20px;
+      border-top: 2px solid #2c3e50;
+      padding-top: 20px;
+    }
+
+    #results_section p {
+      margin: 5px 0;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h2>Point Load & Punching Shear Calculator</h2>
+
+   <!-- Slab Properties -->
+<h3>Slab Properties</h3>
+<label for="slab_thickness"><strong>Slab Thickness:</strong></label>
+<input type="range" id="slab_thickness" name="slab_thickness" min="150" max="250" value="150" oninput="updateSlabThickness();">
+<span id="slab_thickness_value">150 mm</span>
+
+<script>
+function updateSlabThickness() {
+  const slabThickness = document.getElementById("slab_thickness").value;
+  document.getElementById("slab_thickness_value").innerHTML = `${slabThickness} mm`;
+
+  // Trigger any recalculations needed when the slab thickness is updated
+  calculateResults(); // Directly calling the function that handles recalculations
+}
+</script>
+<h3>Characteristic Compressive Cylinder Strength (Mpa):</h3>
+<select id="cccs" name="cccs" onchange="updateCylinderStrength(); handleInputChange()">
+  <option value="20">20 Mpa - Max Shear Strength 3.7 MPa</option>
+  <option value="25">25 Mpa - Max Shear Strength 4.5 MPa</option>
+  <option value="28">28 Mpa - Max Shear Strength 5.0 MPa</option>
+  <option value="30">30 Mpa - Max Shear Strength 5.3 MPa</option>
+  <option value="32">32 Mpa - Max Shear Strength 5.6 MPa</option>
+  <option value="40">40 Mpa - Max Shear Strength 6.7 MPa</option>
+</select>
+<div id="cccs_value">Selected: 20 Mpa - Max Shear Strength 3.7 MPa</div>
+
+<script>
+function updateCylinderStrength() {
+  const cccs = document.getElementById("cccs").value;
+  let cccsText = '';
+
+  switch(cccs) {
+    case '20':
+      cccsText = '20 Mpa - Max Shear Strength 3.7 MPa';
+      break;
+    case '25':
+      cccsText = '25 Mpa - Max Shear Strength 4.5 MPa';
+      break;
+    case '28':
+      cccsText = '28 Mpa - Max Shear Strength 5.0 MPa';
+      break;
+    case '30':
+      cccsText = '30 Mpa - Max Shear Strength 5.3 MPa';
+      break;
+    case '32':
+      cccsText = '32 Mpa - Max Shear Strength 5.6 MPa';
+      break;
+    case '40':
+      cccsText = '40 Mpa - Max Shear Strength 6.7 MPa';
+      break;
+    default:
+      cccsText = '';
+  }
+
+  document.getElementById("cccs_value").innerHTML = `Selected: ${cccsText}`;
+  handleInputChange(); // Trigger recalculations based on CCCS
+}
+</script>
+
+
+<h3>Material:</h3>
+<select id="material" name="material" onchange="updateMaterial(); handleInputChange()">
+  <option value="Concrete">Concrete</option>
+  <option value="Concrete_with_Fibre">Concrete with Fibre</option>
+  <option value="Reinforcement">Reinforcement (bar or fibre)</option>
+</select>
+<div id="material_value">Selected: Concrete - Ym 1.5</div>
+
+<script>
+function updateMaterial() {
+  const material = document.getElementById("material").value;
+  let materialText = '';
+
+  switch (material) {
+    case 'Concrete':
+      materialText = 'Concrete - Ym 1.5';
+      break;
+    case 'Concrete_with_Fibre':
+      materialText = 'Concrete with Fibre - Ym 1.5';
+      break;
+    case 'Reinforcement':
+      materialText = 'Reinforcement (bar or fibre) - Ym 1.15';
+      break;
+    default:
+      materialText = '';
+  }
+
+  document.getElementById("material_value").innerHTML = `Selected: ${materialText}`;
+  handleInputChange(); // Trigger recalculations based on material selection
+}
+</script>
+
+ <h3>Substrate Description (Modulus of Subgrade Reaction):</h3>
+<select id="substrate_description" name="substrate_description" onchange="updateSubstrateDescription(); handleInputChange()">
+  <option value="Fine_slightly_compacted_sand">Fine or slightly compacted sand - k [MPa/mm] 0.015 - 0.03 (Avg 0.0225)</option>
+  <option value="Well_compacted_sand">Well compacted sand - k [MPa/mm] 0.05 - 0.1 (Avg 0.075)</option>
+  <option value="Very_well_compacted_sand">Very well compacted sand - k [MPa/mm] 0.1 - 0.15 (Avg 0.125)</option>
+  <option value="Loam_clay_moist">Loam or clay (moist) - k [MPa/mm] 0.03 - 0.06 (Avg 0.045)</option>
+  <option value="Loam_clay_dry">Loam or clay (dry) - k [MPa/mm] 0.08 - 0.1 (Avg 0.09)</option>
+  <option value="Clay_with_sand">Clay with sand - k [MPa/mm] 0.08 - 0.1 (Avg 0.09)</option>
+  <option value="Crushed_stone_sand">Crushed stone with sand - k [MPa/mm] 0.1 - 0.15 (Avg 0.125)</option>
+  <option value="Coarse_crushed_stone">Coarse crushed stone - k [MPa/mm] 0.2 - 0.25 (Avg 0.225)</option>
+  <option value="Well_compacted_crushed_stone">Well compacted crushed stone - k [MPa/mm] 0.2 - 0.3 (Avg 0.25)</option>
+</select>
+<div id="substrate_description_value">Selected: Fine or slightly compacted sand - Avg 0.0225 MPa/mm</div>
+
+<script>
+function updateSubstrateDescription() {
+  const substrateDescription = document.getElementById("substrate_description").value;
+  let substrateDescriptionText = '';
+
+  switch (substrateDescription) {
+    case 'Fine_slightly_compacted_sand':
+      substrateDescriptionText = 'Fine or slightly compacted sand - Avg 0.0225 MPa/mm';
+      break;
+    case 'Well_compacted_sand':
+      substrateDescriptionText = 'Well compacted sand - Avg 0.075 MPa/mm';
+      break;
+    case 'Very_well_compacted_sand':
+      substrateDescriptionText = 'Very well compacted sand - Avg 0.125 MPa/mm';
+      break;
+    case 'Loam_clay_moist':
+      substrateDescriptionText = 'Loam or clay (moist) - Avg 0.045 MPa/mm';
+      break;
+    case 'Loam_clay_dry':
+      substrateDescriptionText = 'Loam or clay (dry) - Avg 0.09 MPa/mm';
+      break;
+    case 'Clay_with_sand':
+      substrateDescriptionText = 'Clay with sand - Avg 0.09 MPa/mm';
+      break;
+    case 'Crushed_stone_sand':
+      substrateDescriptionText = 'Crushed stone with sand - Avg 0.125 MPa/mm';
+      break;
+    case 'Coarse_crushed_stone':
+      substrateDescriptionText = 'Coarse crushed stone - Avg 0.225 MPa/mm';
+      break;
+    case 'Well_compacted_crushed_stone':
+      substrateDescriptionText = 'Well compacted crushed stone - Avg 0.25 MPa/mm';
+      break;
+    default:
+      substrateDescriptionText = '';
+  }
+
+  document.getElementById("substrate_description_value").innerHTML = `Selected: ${substrateDescriptionText}`;
+  handleInputChange(); // Trigger recalculations based on substrate description change
+}
+</script>
+
+ <!-- Width of the Racking Leg/Column -->
+<h3>Width of the Racking Leg/Column</h3>
+<label for="racking_leg_column"><strong>Width of the Racking Leg/Column:</strong></label>
+<input type="number" id="racking_leg_column" name="racking_leg_column" value="100" oninput="updateRackingLegWidth(); handleInputChange()"> mm
+<div id="racking_leg_value">100 mm</div>
+
+<script>
+function updateRackingLegWidth() {
+  const rackingLegWidth = document.getElementById("racking_leg_column").value;
+  document.getElementById("racking_leg_value").innerHTML = `${rackingLegWidth} mm`;
+
+  handleInputChange(); // Trigger recalculations when racking leg width changes
+}
+</script>
+
+<!-- Moment Capacities -->
+<h3>Moment Capacities</h3>
+
+<label for="kind_of_concrete"><strong>Kind of Concrete:</strong></label>
+<select id="kind_of_concrete" name="kind_of_concrete" onchange="showFibreProducts(); handleInputChange();">
+  <option value="">Select Kind of Concrete</option>
+  <option value="FibreProduct_25MPa_Concrete">FibreProduct 25 MPa Concrete</option>
+  <option value="FibreProduct_40MPa_Concrete">FibreProduct 40 MPa Concrete</option>
+</select>
+
+<!-- Fibre Product Section -->
+<div id="fibre_product_section">
+  <label for="fibre_product"><strong>Fibre Product:</strong></label>
+  <select id="fibre_product" name="fibre_product" disabled onchange="showDosageRate(); handleInputChange();">
+    <option value="">Select Fibre Product</option>
+    <!-- Fibre product options will be dynamically populated based on the selected kind of concrete -->
+  </select>
+</div>
+
+<!-- Dosage Rate Section -->
+<div id="dosage_rate_section">
+  <label for="dosage_rate"><strong>Dosage Rate (kg/m³):</strong></label>
+  <select id="dosage_rate" name="dosage_rate" disabled onchange="handleInputChange();">
+    <option value="">Select Dosage Rate</option>
+    <!-- Dosage rate options will be dynamically populated based on the selected fibre product -->
+  </select>
+</div>
+
+<script>
+// Function to handle the 'Kind of Concrete' selection and populate Fibre Product and Dosage Rate
+function showFibreProducts() {
+  const kindOfConcrete = document.getElementById("kind_of_concrete").value;
+  const fibreProductSelect = document.getElementById("fibre_product");
+  const dosageRateSelect = document.getElementById("dosage_rate");
+
+  fibreProductSelect.innerHTML = ''; // Clear Fibre Product dropdown
+  dosageRateSelect.innerHTML = ''; // Clear Dosage Rate dropdown
+  dosageRateSelect.disabled = true; // Disable dosage rate initially
+
+  fibreProductSelect.disabled = kindOfConcrete === ''; // Disable if no concrete selected
+
+  // Populate Fibre Product options based on the selected Kind of Concrete
+  if (kindOfConcrete === 'FibreProduct_25MPa_Concrete') {
+    fibreProductSelect.innerHTML = `
+      <option value="">Select Fibre Product</option>
+      <option value="ReoCo_65_60__1200_Mpa">ReoCo 65/60 - 1200 MPa</option>
+      <option value="ReoCo_65_60_HT__1500_Mpa">ReoCo 65/60 HT - 1500 MPa</option>
+      <option value="ReoCo_65_35__1350_Mpa">ReoCo 65/35 - 1350 MPa</option>
+      <option value="ReoCo_65_35_HT__1800_MPa">ReoCo 65/35 HT - 1800 MPa</option>
+      <option value="ReoShore_45">ReoShore 45</option>
+      <option value="ReoShore_58">ReoShore 58</option>
+      <option value="Forta_Econo_Mono">Forta Econo Mono</option>
+      <option value="Forta_Econo_Net">Forta Econo Net</option>
+      <option value="Forta_Ferro_54">Forta Ferro 54</option>
+    `;
+  } else if (kindOfConcrete === 'FibreProduct_40MPa_Concrete') {
+    fibreProductSelect.innerHTML = `
+      <option value="">Select Fibre Product</option>
+      <option value="ReoCo_65_60__1200_Mpa">ReoCo 65/60 - 1200 MPa</option>
+      <option value="ReoCo_65_60_HT__1500_Mpa">ReoCo 65/60 HT - 1500 MPa</option>
+      <option value="ReoCo_65_35__1350_Mpa">ReoCo 65/35 - 1350 MPa</option>
+      <option value="ReoCo_65_35_HT__1800_MPa">ReoCo 65/35 HT - 1800 MPa</option>
+      <option value="ReoShore_45">ReoShore 45</option>
+      <option value="ReoShore_58">ReoShore 58</option>
+      <option value="Forta_Econo_Mono">Forta Econo Mono</option>
+      <option value="Forta_Econo_Net">Forta Econo Net</option>
+      <option value="Forta_Ferro_54">Forta Ferro 54</option>
+    `;
+  }
+}
+
+// Function to handle Fibre Product selection and populate Dosage Rate dropdown
+function showDosageRate() {
+  const fibreProduct = document.getElementById("fibre_product").value;
+  const dosageRateSelect = document.getElementById("dosage_rate");
+
+  dosageRateSelect.innerHTML = ''; // Clear previous options
+  dosageRateSelect.disabled = fibreProduct === ''; // Disable if no fibre product selected
+
+  // Populate dosage rate options based on selected fibre product
+  if (fibreProduct === 'ReoCo_65_60__1200_Mpa') {
+    dosageRateSelect.innerHTML = `
+      <option value="25">25 kg/m³</option>
+      <option value="30">30 kg/m³</option>
+      <option value="35">35 kg/m³</option>
+      <option value="40">40 kg/m³</option>
+    `;
+  } else if (fibreProduct === 'ReoCo_65_60_HT__1500_Mpa') {
+    dosageRateSelect.innerHTML = `
+      <option value="20">20 kg/m³</option>
+      <option value="30">30 kg/m³</option>
+      <option value="35">35 kg/m³</option>
+      <option value="40">40 kg/m³</option>
+    `;
+  } else if (fibreProduct === 'ReoCo_65_35__1350_Mpa') {
+    dosageRateSelect.innerHTML = `
+      <option value="20">20 kg/m³</option>
+      <option value="30">30 kg/m³</option>
+      <option value="35">35 kg/m³</option>
+      <option value="40">40 kg/m³</option>
+    `;
+  } else if (fibreProduct === 'ReoCo_65_35_HT__1800_MPa') {
+    dosageRateSelect.innerHTML = `
+      <option value="20">20 kg/m³</option>
+      <option value="30">30 kg/m³</option>
+      <option value="35">35 kg/m³</option>
+      <option value="40">40 kg/m³</option>
+    `;
+  } else if (fibreProduct === 'ReoShore_45') {
+    dosageRateSelect.innerHTML = `
+      <option value="3">3 kg/m³</option>
+      <option value="4">4 kg/m³</option>
+      <option value="5">5 kg/m³</option>
+      <option value="6">6 kg/m³</option>
+    `;
+  } else if (fibreProduct === 'ReoShore_58') {
+    dosageRateSelect.innerHTML = `
+      <option value="4">4 kg/m³</option>
+      <option value="5">5 kg/m³</option>
+      <option value="6">6 kg/m³</option>
+      <option value="7">7 kg/m³</option>
+      <option value="8">8 kg/m³</option>
+    `;
+  } else if (fibreProduct === 'Forta_Econo_Mono') {
+    dosageRateSelect.innerHTML = `
+      <option value="0.6">0.6 kg/m³</option>
+    `;
+  } else if (fibreProduct === 'Forta_Econo_Net') {
+    dosageRateSelect.innerHTML = `
+      <option value="0.9">0.9 kg/m³</option>
+    `;
+  } else if (fibreProduct === 'Forta_Ferro_54') {
+    dosageRateSelect.innerHTML = `
+      <option value="3">3 kg/m³</option>
+      <option value="4">4 kg/m³</option>
+      <option value="5">5 kg/m³</option>
+      <option value="6">6 kg/m³</option>
+      <option value="7">7 kg/m³</option>
+    `;
+  }
+}
+</script>
+
+   <!-- Loads Inputs -->
+<h3>Single Point Load</h3>
+<label for="ultimate_design_point_load"><strong>Ultimate Design Point Load:</strong></label>
+<input type="number" id="ultimate_design_point_load" name="ultimate_design_point_load" value="40" min="0" step="1" oninput="updateUltimateDesignPointLoad(); handleInputChange()"> kn
+
+<h3>Dual Point Load</h3>
+<label for="dual_ultimate_design_point_load_1"><strong>Dual - Ultimate Design Point Load 1:</strong></label>
+<input type="number" id="dual_ultimate_design_point_load_1" name="dual_ultimate_design_point_load_1" value="30" min="0" step="1" oninput="updateDualPointLoad(); handleInputChange()"> kn
+
+<label for="dual_ultimate_design_point_load_2"><strong>Dual - Ultimate Design Point Load 2:</strong></label>
+<input type="number" id="dual_ultimate_design_point_load_2" name="dual_ultimate_design_point_load_2" value="20" min="0" step="1" oninput="updateDualPointLoad(); handleInputChange()"> kn
+
+<label for="centre_line_spacing_between_2_point_loads"><strong>Centre Line Spacing between 2 point loads:</strong></label>
+<input type="number" id="centre_line_spacing_between_2_point_loads" name="centre_line_spacing_between_2_point_loads" value="1200" min="0" step="1" oninput="updateDualPointLoad(); handleInputChange()"> mm
+
+<script>
+  // Function to handle Single Point Load
+  function updateUltimateDesignPointLoad() {
+    const ultimateDesignPointLoad = document.getElementById("ultimate_design_point_load").value;
+    document.getElementById("ultimate_design_point_load_value").innerHTML = `Ultimate Design Point Load: ${ultimateDesignPointLoad} kn`;
+    handleInputChange(); // Trigger recalculations for the single point load
+  }
+
+  // Function to handle Dual Point Load
+  function updateDualPointLoad() {
+    const dualUltimateDesignPointLoad1 = document.getElementById("dual_ultimate_design_point_load_1").value;
+    const dualUltimateDesignPointLoad2 = document.getElementById("dual_ultimate_design_point_load_2").value;
+    const centreLineSpacing = document.getElementById("centre_line_spacing_between_2_point_loads").value;
+
+    document.getElementById("dual_point_load_values").innerHTML = `
+        Dual - Ultimate Design Point Load 1: ${dualUltimateDesignPointLoad1} kn<br>
+        Dual - Ultimate Design Point Load 2: ${dualUltimateDesignPointLoad2} kn<br>
+        Centre Line Spacing: ${centreLineSpacing} mm
+    `;
+    handleInputChange(); // Trigger recalculations for dual point load
+  }
+</script>
+
+<!-- Quadruple Point Load -->
+<h3>Quadruple Point Load</h3>
+
+<label for="quadruple_ultimate_design_point_load_1"><strong>Quadruple - Ultimate Design Point Load 1:</strong></label>
+<input type="number" id="quadruple_ultimate_design_point_load_1" name="quadruple_ultimate_design_point_load_1" value="25" min="0" step="1" oninput="updateQuadruplePointLoad(); handleInputChange()"> kn
+
+<label for="quadruple_ultimate_design_point_load_2"><strong>Quadruple - Ultimate Design Point Load 2:</strong></label>
+<input type="number" id="quadruple_ultimate_design_point_load_2" name="quadruple_ultimate_design_point_load_2" value="25" min="0" step="1" oninput="updateQuadruplePointLoad(); handleInputChange()"> kn
+
+<label for="quadruple_ultimate_design_point_load_3"><strong>Quadruple - Ultimate Design Point Load 3:</strong></label>
+<input type="number" id="quadruple_ultimate_design_point_load_3" name="quadruple_ultimate_design_point_load_3" value="25" min="0" step="1" oninput="updateQuadruplePointLoad(); handleInputChange()"> kn
+
+<label for="quadruple_ultimate_design_point_load_4"><strong>Quadruple - Ultimate Design Point Load 4:</strong></label>
+<input type="number" id="quadruple_ultimate_design_point_load_4" name="quadruple_ultimate_design_point_load_4" value="25" min="0" step="1" oninput="updateQuadruplePointLoad(); handleInputChange()"> kn
+
+<label for="quadruple_centre_line_spacing_x"><strong>Centre Line Spacing between 2 point loads X:</strong></label>
+<input type="number" id="quadruple_centre_line_spacing_x" name="quadruple_centre_line_spacing_x" value="450" min="0" step="1" oninput="updateQuadruplePointLoad(); handleInputChange()"> mm
+
+<label for="quadruple_centre_line_spacing_y"><strong>Centre Line Spacing between 2 point loads Y:</strong></label>
+<input type="number" id="quadruple_centre_line_spacing_y" name="quadruple_centre_line_spacing_y" value="1200" min="0" step="1" oninput="updateQuadruplePointLoad(); handleInputChange()"> mm
+
+<script>
+  // Function to handle Quadruple Point Load
+  function updateQuadruplePointLoad() {
+    const quadrupleUltimateDesignPointLoad1 = document.getElementById("quadruple_ultimate_design_point_load_1").value;
+    const quadrupleUltimateDesignPointLoad2 = document.getElementById("quadruple_ultimate_design_point_load_2").value;
+    const quadrupleUltimateDesignPointLoad3 = document.getElementById("quadruple_ultimate_design_point_load_3").value;
+    const quadrupleUltimateDesignPointLoad4 = document.getElementById("quadruple_ultimate_design_point_load_4").value;
+    const centreLineSpacingX = document.getElementById("quadruple_centre_line_spacing_x").value;
+    const centreLineSpacingY = document.getElementById("quadruple_centre_line_spacing_y").value;
+
+    document.getElementById("quadruple_point_load_values").innerHTML = `
+        Quadruple - Ultimate Design Point Load 1: ${quadrupleUltimateDesignPointLoad1} kn<br>
+        Quadruple - Ultimate Design Point Load 2: ${quadrupleUltimateDesignPointLoad2} kn<br>
+        Quadruple - Ultimate Design Point Load 3: ${quadrupleUltimateDesignPointLoad3} kn<br>
+        Quadruple - Ultimate Design Point Load 4: ${quadrupleUltimateDesignPointLoad4} kn<br>
+        Centre Line Spacing X: ${centreLineSpacingX} mm<br>
+        Centre Line Spacing Y: ${centreLineSpacingY} mm
+    `;
+    handleInputChange(); // Trigger recalculations for quadruple point load
+  }
+</script>
+
+
+<!-- Punching Shear -->
+<h3>Punching Shear</h3>
+
+<label for="design_point_load"><strong>Design Point Load:</strong></label>
+<input type="number" id="design_point_load" name="design_point_load" value="40" min="0" step="1" oninput="updatePunchingShear(); handleInputChange()"> kn
+
+<label for="base_plate_thickness"><strong>Base Plate Thickness:</strong></label>
+<input type="number" id="base_plate_thickness" name="base_plate_thickness" value="10" min="0" step="1" oninput="updatePunchingShear(); handleInputChange()"> mm
+
+<label for="internal_slab_shear_stress"><strong>Unreinforced Concrete Minimum Shear Stress:</strong></label>
+<input type="number" id="internal_slab_shear_stress" name="internal_slab_shear_stress" value="0.5" readonly> MPa
+
+<label for="bearing_plate_dimensions"><strong>Effective Dimensions of Bearing Plate [mm]:</strong></label>
+<input type="number" id="bearing_plate_dimensions_x" name="bearing_plate_dimensions_x" value="100" readonly> x 
+<input type="number" id="bearing_plate_dimensions_y" name="bearing_plate_dimensions_y" value="125" readonly> mm
+
+<script>
+  // Function to calculate Punching Shear results
+  function updatePunchingShear() {
+    const designPointLoad = parseFloat(document.getElementById("design_point_load").value);
+    const basePlateThickness = parseFloat(document.getElementById("base_plate_thickness").value);
+    const slabShearStress = parseFloat(document.getElementById("internal_slab_shear_stress").value);
+    const bearingPlateDimensionX = parseFloat(document.getElementById("bearing_plate_dimensions_x").value);
+    const bearingPlateDimensionY = parseFloat(document.getElementById("bearing_plate_dimensions_y").value);
+
+    const maxInternalSlabShear = 35;
+    const maxEdgeShear = 25;
+    const maxCornerShear = 20;
+    const groundPressureThreshold = 0.6;
+
+    // Internal Slab Shear Calculation
+    const internalSlabShear = designPointLoad * slabShearStress / (bearingPlateDimensionX * bearingPlateDimensionY);
+    const internalSlabResult = internalSlabShear <= maxInternalSlabShear ? "PASS" : "FAIL";
+    document.getElementById("punching_shear_internal_slab").innerHTML = `
+      <span class="threshold">Threshold: ${maxInternalSlabShear} MPa</span><br>
+      <span class="result">Calculated: ${internalSlabShear.toFixed(2)} MPa</span><br>
+      <span class="status">${internalSlabResult}</span>`;
+
+    // Edge Shear Calculation
+    const edgeShear = basePlateThickness * slabShearStress / (bearingPlateDimensionX + bearingPlateDimensionY);
+    const edgeResult = edgeShear <= maxEdgeShear ? "PASS" : "FAIL";
+    document.getElementById("punching_shear_edge").innerHTML = `
+      <span class="threshold">Threshold: ${maxEdgeShear} MPa</span><br>
+      <span class="result">Calculated: ${edgeShear.toFixed(2)} MPa</span><br>
+      <span class="status">${edgeResult}</span>`;
+
+    // Corner Shear Calculation
+    const cornerShear = basePlateThickness * slabShearStress / bearingPlateDimensionX;
+    const cornerResult = cornerShear <= maxCornerShear ? "PASS" : "FAIL";
+    document.getElementById("punching_shear_corner").innerHTML = `
+      <span class="threshold">Threshold: ${maxCornerShear} MPa</span><br>
+      <span class="result">Calculated: ${cornerShear.toFixed(2)} MPa</span><br>
+      <span class="status">${cornerResult}</span>`;
+
+    // Internal Load Ground Pressure Calculation
+    const internalGroundPressure = designPointLoad / bearingPlateDimensionX;
+    const internalGroundPressureResult = internalGroundPressure <= groundPressureThreshold ? "PASS" : "FAIL";
+    document.getElementById("punching_shear_internal_load_ground_pressure").innerHTML = `
+      <span class="threshold">Threshold: ${groundPressureThreshold} MPa</span><br>
+      <span class="result">Calculated: ${internalGroundPressure.toFixed(2)} MPa</span><br>
+      <span class="status">${internalGroundPressureResult}</span>`;
+
+    // Edge Load Ground Pressure Calculation
+    const edgeGroundPressure = designPointLoad / bearingPlateDimensionY;
+    const edgeGroundPressureResult = edgeGroundPressure <= groundPressureThreshold ? "PASS" : "FAIL";
+    document.getElementById("punching_shear_edge_load_ground_pressure").innerHTML = `
+      <span class="threshold">Threshold: ${groundPressureThreshold} MPa</span><br>
+      <span class="result">Calculated: ${edgeGroundPressure.toFixed(2)} MPa</span><br>
+      <span class="status">${edgeGroundPressureResult}</span>`;
+  }
+</script>
+
+  <!-- Results Section -->
+<h3>Results - Point Loads</h3>
+
+<div id="results_section">
+  <strong>Single Point Load:</strong>
+  <p id="single_point_internal_load" class="result-box">Internal Load: N/A</p> <!-- Internal Load -->
+  <p id="single_point_free_edge_load" class="result-box">Free Edge Load: N/A</p> <!-- Free Edge Load -->
+  <p id="single_point_free_corner_load" class="result-box">Free Corner Load: N/A</p> <!-- Free Corner Load -->
+
+  <strong>Dual Point Loads:</strong>
+  <p id="dual_point_internal_load" class="result-box">Internal Load: N/A</p> <!-- Internal Load -->
+  <p id="dual_point_free_edge_load" class="result-box">Free Edge Load: N/A</p> <!-- Free Edge Load -->
+
+  <strong>Quadruple Point Loads:</strong>
+  <p id="quadruple_point_internal_load" class="result-box">Internal Load: N/A</p> <!-- Internal Load -->
+
+  <h3>Results - Punching Shear</h3>
+  <p id="punching_shear_internal_slab" class="result-box">Internal Slab Shear: N/A</p> <!-- Internal Slab Shear -->
+  <p id="punching_shear_edge" class="result-box">Edge Shear: N/A</p> <!-- Edge Shear -->
+  <p id="punching_shear_corner" class="result-box">Corner Shear: N/A</p> <!-- Corner Shear -->
+  <p id="punching_shear_internal_load_ground_pressure" class="result-box">Internal Load Ground Pressure: N/A</p> <!-- Internal Load Ground Pressure -->
+  <p id="punching_shear_edge_load_ground_pressure" class="result-box">Edge Load Ground Pressure: N/A</p> <!-- Edge Load Ground Pressure -->
+</div>
+
+<style>
+  .result-box {
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    padding: 10px;
+    width: fit-content;
+    margin-bottom: 5px;
+    font-family: Arial, sans-serif;
+  }
+
+  .result-box .threshold {
+    font-weight: bold;
+    color: #3498db; /* Blue for thresholds */
+  }
+
+  .result-box .result {
+    font-weight: bold;
+    color: #e74c3c; /* Red for results */
+  }
+
+  .result-box .status {
+    font-weight: bold;
+    color: #27ae60; /* Green for status (PASS/FAIL) */
+  }
+</style>
+
+
